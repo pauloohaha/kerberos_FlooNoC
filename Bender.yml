@@ -59,6 +59,9 @@ sources:
   - hw/floo_nw_vc_chimney.sv
   - hw/floo_nw_vc_router.sv
 
+  # Ring on Mesh router
+  - hw/floo_ring_on_mesh_router.sv
+
   - target: floo_test
     include_dirs:
       - hw/test/include
@@ -80,6 +83,7 @@ sources:
       - hw/tb/tb_floo_router.sv
       - hw/tb/tb_floo_rob.sv
       - hw/tb/tb_floo_vc_router.sv
+      - hw/tb/tb_floo_ring_on_mesh_router.sv
 
   - target: all(floo_test, axi_mesh)
     include_dirs:
