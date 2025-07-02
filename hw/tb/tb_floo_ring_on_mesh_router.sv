@@ -145,7 +145,17 @@ module tb_floo_ring_on_mesh_router;
 
                 //ring on mesh testings
                 next_flit.hdr.ring_on_mesh_mcast = stimuli.ring_on_mesh_mcast;
-                next_flit.hdr.up_down_traffic = stimuli.up_down_traffic;
+
+                if(port == Up_traffic_port) begin
+                    // from up port, need to be down traffic
+                    next_flit.hdr.up_down_traffic = 1'b0;
+                end else if(port == Down_traffic_port) begin
+                    // from down port, need to be up traffic
+                    next_flit.hdr.up_down_traffic = 1'b1;
+                end else begin
+                    // other port, arbitary dir
+                    next_flit.hdr.up_down_traffic = stimuli.up_down_traffic;
+                end
 
                 stimuli_queue[port][virt_channel].push_back(next_flit);
 
