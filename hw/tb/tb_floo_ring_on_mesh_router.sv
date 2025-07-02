@@ -43,6 +43,10 @@ module tb_floo_ring_on_mesh_router;
 
   localparam int unsigned NumNode = 16;
 
+  localparam int unsigned RingId = 2;
+  localparam int unsigned Up_traffic_port = 2;
+  localparam int unsigned Down_traffic_port = 1;
+
   typedef logic [FlitWidth-1:0] payload_t;
   typedef logic [IdWidth-1:0] id_t;
 
@@ -110,6 +114,8 @@ module tb_floo_ring_on_mesh_router;
   floo_req_generic_flit_t  golden_queue [NumPorts][NumVirtChannels][NumPorts][$];
 
   function automatic void generate_stimuli();
+
+
     for (int port = 0; port < NumPorts; port++) begin
       for (int virt_channel = 0; virt_channel < NumVirtChannels; virt_channel++) begin
         // TODO MICHAERO: ensure each output gets at least one packet from input for testbench termination
@@ -133,12 +139,36 @@ module tb_floo_ring_on_mesh_router;
                 next_flit.hdr.dst_id = stimuli.id;
                 next_flit.hdr.last = j == stimuli.len-1;
 
+                for(int k = next_flit.hdr.src_id; k <= next_flit.hdr.dst_id; k++) begin
+                    next_flit.hdr.ring_on_mesh_dst_mask[k] = (k == RingId && port == 0) ? 1'b0 : 1'b1; //don't inject self traffic at port 0
+                end
+
                 //ring on mesh testings
                 next_flit.hdr.ring_on_mesh_mcast = stimuli.ring_on_mesh_mcast;
                 next_flit.hdr.up_down_traffic = stimuli.up_down_traffic;
 
                 stimuli_queue[port][virt_channel].push_back(next_flit);
-                golden_queue[port][virt_channel][stimuli.id].push_back(next_flit);
+
+                if(stimuli.ring_on_mesh_mcast) begin
+
+                    // ring on mesh mcast case
+                    if(next_flit.hdr.ring_on_mesh_dst_mask[RingId] == 1'b1) begin
+                        //in dst list, push in to eject port
+                        golden_queue[port][virt_channel][0].push_back(next_flit);
+                    end
+                    if(next_flit.hdr.dst_id != RingId) begin
+                        // need to forward
+                        if(next_flit.hdr.up_down_traffic) begin
+                            // up traffic
+                            golden_queue[port][virt_channel][Up_traffic_port].push_back(next_flit);
+                        end else begin
+                            // down traffic
+                            golden_queue[port][virt_channel][Down_traffic_port].push_back(next_flit);
+                        end
+                    end
+                end else begin
+                    golden_queue[port][virt_channel][stimuli.id].push_back(next_flit);
+                end
 
                 // $display("%x from: %d to: %d vc: %d, last: %d",next_flit.data, port, next_flit.id, virt_channel, next_flit.last);
               end else begin
@@ -237,7 +267,7 @@ module tb_floo_ring_on_mesh_router;
   end
 
 
-  floo_router #(
+  floo_ring_on_mesh_router #(
     .NumRoutes        ( NumPorts                ),
     .NumVirtChannels  ( NumVirtChannels         ),
     .flit_t           ( floo_req_generic_flit_t ),
@@ -255,6 +285,10 @@ module tb_floo_ring_on_mesh_router;
     .valid_i       ( valid_in  ),
     .ready_o       ( ready_in  ),
     .data_i        ( data_in   ),
+
+    .ring_on_mesh_id_i        ( RingId            ),
+    .ring_on_mesh_up_port_i   ( Up_traffic_port   ),
+    .ring_on_mesh_down_port_i ( Down_traffic_port ),
 
     .valid_o       ( valid_out ),
     .ready_i       ( ready_out ),
@@ -360,6 +394,8 @@ module tb_floo_ring_on_mesh_router;
       end
 
       if (result.payload != golden.payload) begin
+        $display("gold flit: src: %0d, dst: %0d", golden.hdr.src_id, golden.hdr.dst_id);
+        $display("gold payload: %0h, result payload: %0h", golden.payload, result.payload);
         $error("ERROR! Mismatch for port %d channel %d (from %d, target port %d)",
                port, virt_channel, result.hdr.src_id, result.hdr.dst_id);
       end
@@ -395,6 +431,7 @@ module tb_floo_ring_on_mesh_router;
 
   initial begin
     // Initialize variables
+    $urandom(1234);
     pre_valid_in = '0;
     pre_data_in = '0;
     delayed_ready_out = '0;

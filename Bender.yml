@@ -60,6 +60,9 @@ sources:
   - hw/floo_nw_vc_router.sv
 
   # Ring on Mesh router
+  # Level 1
+  - hw/floo_ring_on_mesh_route_select.sv
+  # Level 2
   - hw/floo_ring_on_mesh_router.sv
 
   - target: floo_test

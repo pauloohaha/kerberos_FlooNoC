@@ -5,6 +5,7 @@
 // Michael Rogenmoser <michaero@iis.ee.ethz.ch>
 
 `include "common_cells/assertions.svh"
+`include "common_cells/registers.svh"
 
 /// A simple router with configurable number of ports, physical and virtual channels, and input/output buffers
 /// Extended for ring on mesh multicasting
@@ -124,6 +125,9 @@ module floo_ring_on_mesh_router
 
   flit_t [NumOutput-1:0][NumVirtChannels-1:0][NumInputLimited-1:0] masked_data;
 
+  //ring on mesh ctrl
+  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] finished_req_q, finished_req_d;
+
   // TODO MICHAERO: reduce connections if (RouteAlgo == XYRouting)
   for (genvar in_route = 0; in_route < NumInput; in_route++) begin : gen_hs_input
     for (genvar v_chan = 0; v_chan < NumVirtChannels; v_chan++) begin : gen_hs_virt
@@ -142,14 +146,48 @@ module floo_ring_on_mesh_router
         end else begin : gen_default
           assign masked_all_ready[in_route][v_chan][out_route] =
             masked_ready[out_route][v_chan][ModInRoute];
-          assign masked_valid[out_route][v_chan][ModInRoute] =
-            in_valid[in_route][v_chan] & route_mask[in_route][v_chan][out_route];
+
+          always_comb begin
+              if(in_routed_data[in_route][v_chan].hdr.ring_on_mesh_mcast == 1'b0) begin
+                  masked_valid[out_route][v_chan][ModInRoute] =
+                    in_valid[in_route][v_chan] & route_mask[in_route][v_chan][out_route];
+              end else begin
+                  //only send un requested dir in mcast case
+                  masked_valid[out_route][v_chan][ModInRoute] =
+                    in_valid[in_route][v_chan] & route_mask[in_route][v_chan][out_route] & ~finished_req_q[in_route][v_chan][out_route];
+              end
+          end
+
           assign masked_data[out_route][v_chan][ModInRoute] =
             in_routed_data[in_route][v_chan];
         end
       end
-      assign in_ready[in_route][v_chan] =
-        |(masked_all_ready[in_route][v_chan] & route_mask[in_route][v_chan]);
+
+      // ring on mesh: finished_req_q initialized as 0
+      // when request to one of the dir is finished, set the respective bit in finished_req_q to 1
+      // finished_req_q is reset to 0 when a mcast req is finished (in_ready is high)
+      // masked valid is only high when in
+      `FF(finished_req_q[in_route][v_chan], finished_req_d[in_route][v_chan], '0)
+
+      always_comb begin
+          if(in_ready[in_route][v_chan]) begin
+              finished_req_d[in_route][v_chan] = '0;
+          end else begin
+              finished_req_d[in_route][v_chan] = finished_req_q[in_route][v_chan] | (masked_all_ready[in_route][v_chan] & route_mask[in_route][v_chan]);
+          end
+      end
+
+      always_comb begin
+          if(in_routed_data[in_route][v_chan].hdr.ring_on_mesh_mcast == 1'b0) begin
+              in_ready[in_route][v_chan] =
+                |(masked_all_ready[in_route][v_chan] & route_mask[in_route][v_chan]);
+          end else begin
+              //ring on mesh multi casting
+              //if all (current cycle requested and accepted dir, un requested dir, previous cycle requested and accepeted dir) are done, mcast finished
+              in_ready[in_route][v_chan] =
+                &((masked_all_ready[in_route][v_chan] & route_mask[in_route][v_chan]) | ~route_mask[in_route][v_chan] | finished_req_q[in_route][v_chan]);
+          end
+      end
     end
   end
 

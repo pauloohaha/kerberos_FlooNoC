@@ -44,8 +44,6 @@ module floo_ring_on_mesh_route_select
   logic [NumRoutes-1:0] route_sel;
   logic [RouteSelWidth-1:0] route_sel_id;
 
-if (channel_i.hdr.ring_on_mesh_mcast == 1'b0) begin
-
     if (RouteAlgo == IdTable) begin : gen_id_table
         // Routing based on an ID table passed into the router (TBD parameter or signal)
         // Assumes an ID field present in the flit_t
@@ -78,12 +76,28 @@ if (channel_i.hdr.ring_on_mesh_mcast == 1'b0) begin
 
       end else if (RouteAlgo == SourceRouting) begin : gen_consumption
         // Routing based on a consumable header in the flit
-        always_comb begin : proc_route_sel
-          route_sel_id = channel_i.hdr.dst_id[RouteSelWidth-1:0];
-          route_sel = '0;
-          route_sel[route_sel_id] = 1'b1;
-          channel_o = channel_i;
-          channel_o.hdr.dst_id = channel_i.hdr.dst_id >> RouteSelWidth;
+        always_comb begin
+            if (channel_i.hdr.ring_on_mesh_mcast == 1'b0) begin
+                  route_sel_id = channel_i.hdr.dst_id[RouteSelWidth-1:0];
+                  route_sel = '0;
+                  route_sel[route_sel_id] = 1'b1;
+                  channel_o = channel_i;
+                  channel_o.hdr.dst_id = channel_i.hdr.dst_id >> RouteSelWidth;
+                
+            end else begin
+                //ring on mesh mcast
+                  route_sel = '0;
+                  if(channel_i.hdr.dst_id != ring_on_mesh_id_i) begin
+                      //need to forward
+                      route_sel_id = channel_i.hdr.up_down_traffic ? ring_on_mesh_up_port_i : ring_on_mesh_down_port_i;
+                      route_sel[route_sel_id] = 1'b1;
+                  end
+                  if(channel_i.hdr.ring_on_mesh_dst_mask[ring_on_mesh_id_i] == 1'b1) begin
+                      //current node is in dst
+                      route_sel[0] = 1'b1; // receive port
+                  end
+                  channel_o = channel_i;
+            end
         end
 
       end else if (RouteAlgo == XYRouting) begin : gen_xy_routing
@@ -133,22 +147,7 @@ if (channel_i.hdr.ring_on_mesh_mcast == 1'b0) begin
           $fatal(1, "Routing algorithm unknown");
         end
       end
-end else begin
-    //ring on mesh mcast
-    route_sel = '0;
 
-    if(channel_i.hdr.dst_id != ring_on_mesh_id_i) begin
-        //need to forward
-        route_sel_id = channel_i.hdr.up_down_traffic ? ring_on_mesh_up_port_i : ring_on_mesh_down_port_i;
-        route_sel[route_sel_id] = 1'b1;
-    end
-
-    if(channel_i.hdr.ring_on_mesh_dst_mask[ring_on_mesh_id_i] == 1'b1) begin
-        //current node is in dst
-        route_sel[0] = 1'b1; // receive port
-    end
-    channel_o = channel_i;
-end
 
   if (LockRouting) begin : gen_lock
     logic locked_route_d, locked_route_q;
