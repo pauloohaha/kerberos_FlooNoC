@@ -87,10 +87,14 @@ module floo_ring_on_mesh_route_select
             end else begin
                 //ring on mesh mcast
                   route_sel = '0;
+                  route_sel_id = '0; //Piao: no used in rong on mesh mcast
                   if(channel_i.hdr.dst_id != ring_on_mesh_id_i) begin
                       //need to forward
-                      route_sel_id = channel_i.hdr.up_down_traffic ? ring_on_mesh_up_port_i : ring_on_mesh_down_port_i;
-                      route_sel[route_sel_id] = 1'b1;
+                      if(channel_i.hdr.up_down_traffic) begin
+                          route_sel[ring_on_mesh_up_port_i] = 1'b1;
+                      end else begin
+                          route_sel[ring_on_mesh_down_port_i] = 1'b1;
+                      end  
                   end
                   if(channel_i.hdr.ring_on_mesh_dst_mask[ring_on_mesh_id_i] == 1'b1) begin
                       //current node is in dst
