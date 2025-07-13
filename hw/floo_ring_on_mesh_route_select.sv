@@ -24,7 +24,6 @@ module floo_ring_on_mesh_route_select
 ) (
   input  logic                          clk_i,
   input  logic                          rst_ni,
-  input  logic                          test_enable_i,
 
   input  id_t                           xy_id_i,
   input  addr_rule_t [NumAddrRules-1:0] id_route_map_i,

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: SHL-0.51
 
 package:
-  name: floo_noc
+  name: kerberos_FlooNoC
   authors:
     - "Michael Rogenmoser <michaero@iis.ee.ethz.ch>"
     - "Tim Fischer <fischeti@iis.ee.ethz.ch>"

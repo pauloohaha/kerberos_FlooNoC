@@ -100,7 +100,6 @@ module floo_ring_on_mesh_router
       ) i_ring_on_mesh_route_select (
         .clk_i,
         .rst_ni,
-        .test_enable_i,
 
         .xy_id_i        ( xy_id_i                          ),
         .id_route_map_i ( id_route_map_i                   ),

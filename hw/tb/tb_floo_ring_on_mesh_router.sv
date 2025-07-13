@@ -292,13 +292,14 @@ module tb_floo_ring_on_mesh_router;
     .xy_id_i       ( '0 ), // Unused for `SourceRouting`
     .id_route_map_i( '0 ), // Unused for `SourceRouting`
 
+    .ring_on_mesh_id_i        ( RingId            ),
+    .ring_on_mesh_up_port_i   ( Up_traffic_port   ),
+    .ring_on_mesh_down_port_i ( Down_traffic_port ),
+
     .valid_i       ( valid_in  ),
     .ready_o       ( ready_in  ),
     .data_i        ( data_in   ),
 
-    .ring_on_mesh_id_i        ( RingId            ),
-    .ring_on_mesh_up_port_i   ( Up_traffic_port   ),
-    .ring_on_mesh_down_port_i ( Down_traffic_port ),
 
     .valid_o       ( valid_out ),
     .ready_i       ( ready_out ),
