@@ -15,7 +15,7 @@ module floo_ring_on_mesh_router
   parameter int unsigned NumRoutes        = 0,
   parameter int unsigned NumVirtChannels  = 0,
   parameter int unsigned NumPhysChannels  = 1,
-  parameter int unsigned NumNodes         = 1,
+  parameter int unsigned NumNodes         = 16,
   parameter type         flit_t           = logic,
   parameter int unsigned InFifoDepth      = 0,
   parameter int unsigned OutFifoDepth     = 0,
@@ -92,6 +92,7 @@ module floo_ring_on_mesh_router
 
       floo_ring_on_mesh_route_select #(
         .NumRoutes    ( NumOutput    ),
+        .NumNodes     ( NumNodes     ),
         .flit_t       ( flit_t       ),
         .RouteAlgo    ( RouteAlgo    ),
         .IdWidth      ( IdWidth      ),
