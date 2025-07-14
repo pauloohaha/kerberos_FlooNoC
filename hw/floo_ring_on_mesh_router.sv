@@ -15,6 +15,7 @@ module floo_ring_on_mesh_router
   parameter int unsigned NumRoutes        = 0,
   parameter int unsigned NumVirtChannels  = 0,
   parameter int unsigned NumPhysChannels  = 1,
+  parameter int unsigned NumNodes         = 1,
   parameter type         flit_t           = logic,
   parameter int unsigned InFifoDepth      = 0,
   parameter int unsigned OutFifoDepth     = 0,
@@ -38,7 +39,7 @@ module floo_ring_on_mesh_router
   input  id_t                                        xy_id_i,        // if unused assign to '0
   input  addr_rule_t [NumAddrRules-1:0]              id_route_map_i, // if unused assign to '0
 
-  input  id_t                                        ring_on_mesh_id_i,
+  input  logic [$clog2(NumNodes)-1:0]                ring_on_mesh_id_i,
   input  logic [$clog2(NumRoutes)-1:0]               ring_on_mesh_up_port_i,
   input  logic [$clog2(NumRoutes)-1:0]               ring_on_mesh_down_port_i,
 

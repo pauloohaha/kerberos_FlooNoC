@@ -10,6 +10,7 @@ module floo_ring_on_mesh_route_select
   import floo_pkg::*;
 #(
   parameter int unsigned NumRoutes     = 0,
+  parameter int unsigned NumNodes      = 16,
   parameter type         flit_t        = logic,
   parameter route_algo_e RouteAlgo     = IdTable,
   parameter bit          LockRouting   = 1'b1,
@@ -28,7 +29,7 @@ module floo_ring_on_mesh_route_select
   input  id_t                           xy_id_i,
   input  addr_rule_t [NumAddrRules-1:0] id_route_map_i,
 
-  input  id_t                           ring_on_mesh_id_i,
+  input  logic [$clog2(NumNodes)-1:0]   ring_on_mesh_id_i,
   input  logic [RouteSelWidth-1:0]      ring_on_mesh_up_port_i,
   input  logic [RouteSelWidth-1:0]      ring_on_mesh_down_port_i,
 
