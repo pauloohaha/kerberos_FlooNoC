@@ -118,33 +118,51 @@ module floo_ring_on_mesh_route_select
         //   - 4: lower bits increasing (East )
 
         // One-hot encoding of the decoded route
-
         id_t id_in;
         assign id_in = id_t'(channel_i.hdr.dst_id);
 
-        always_comb begin : proc_route_sel
-          route_sel_id = East;
-          if (id_in.x == xy_id_i.x && id_in.y == xy_id_i.y) begin
-            route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
-          end else if (id_in.x == xy_id_i.x) begin
-            if (id_in.y < xy_id_i.y) begin
-              route_sel_id = South;
+        always_comb begin
+            if (channel_i.hdr.ring_on_mesh_mcast == 1'b0) begin
+                //normal unicast, xy routing
+                route_sel_id = East;
+                if (id_in.x == xy_id_i.x && id_in.y == xy_id_i.y) begin
+                  route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
+                end else if (id_in.x == xy_id_i.x) begin
+                  if (id_in.y < xy_id_i.y) begin
+                    route_sel_id = South;
+                  end else begin
+                    route_sel_id = North;
+                  end
+                end else begin
+                  if (id_in.x < xy_id_i.x) begin
+                    route_sel_id = West;
+                  end else begin
+                    route_sel_id = East;
+                  end
+                end
+                route_sel = '0;
+                route_sel[route_sel_id] = 1'b1;
+                
+                channel_o = channel_i;
             end else begin
-              route_sel_id = North;
+                //ring on mesh mcast
+                route_sel = '0;
+                route_sel_id = '0; //Piao: no used in rong on mesh mcast
+                if(channel_i.hdr.dst_id != ring_on_mesh_id_i) begin
+                    //need to forward
+                    if(channel_i.hdr.up_down_traffic) begin
+                        route_sel[ring_on_mesh_up_port_i] = 1'b1;
+                    end else begin
+                        route_sel[ring_on_mesh_down_port_i] = 1'b1;
+                    end  
+                end
+                if(channel_i.hdr.ring_on_mesh_dst_mask[ring_on_mesh_id_i] == 1'b1) begin
+                    //current node is in dst, need to recv
+                    route_sel[0] = 1'b1; // receive port
+                end
+                channel_o = channel_i;
             end
-          end else begin
-            if (id_in.x < xy_id_i.x) begin
-              route_sel_id = West;
-            end else begin
-              route_sel_id = East;
-            end
-          end
-          route_sel = '0;
-          route_sel[route_sel_id] = 1'b1;
         end
-
-        assign channel_o = channel_i;
-
       end else begin : gen_err
         // Unknown or unimplemented routing otherwise
         initial begin

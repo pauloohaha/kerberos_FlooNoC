@@ -29,7 +29,7 @@ module floo_ring_on_mesh_router
   /// Configuration parameters for special network topologies
   parameter int unsigned NumInput         = NumRoutes,
   parameter int unsigned NumOutput        = NumRoutes,
-  parameter bit          XYRouteOpt       = 1'b1,
+  parameter bit          XYRouteOpt       = 1'b0, //disable xy route opt for ring connections
   parameter bit          NoLoopback       = 1'b1
 ) (
   input  logic                                       clk_i,
